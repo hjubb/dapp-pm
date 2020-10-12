@@ -6,7 +6,9 @@ I wasn't satisfied with using the dapp tools to import dependencies because it r
 
 ### Usage
 Running `dapp-pm [github-username]/[github-repo]@[version-tag]` will download the repo to `~/.dapp-pm/[path]` and present you with a terminal UI like the following
+
 ![Terminal UI](https://imgur.com/LuJYdGK.png)
 
 After selecting the contracts you want to import, it will copy the .sol files and their dependencies to `./src/lib/[path]/[name].sol`, example output of import `ERC20.sol` from `openzeppelin/openzeppelin-contracts@v3.2.0`
+
 ![Tree ./src](https://i.imgur.com/PhCd8aG.png)
