@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/mitchellh/go-homedir"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -112,9 +114,13 @@ func (s *Storage) ExtractPaths(dep *Dependency) (*Extractor, error) {
 			return nil
 		}
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".sol") {
+			relPath, err := filepath.Rel(gitRoot, path)
+			if err != nil {
+				panic(err)
+			}
 			sols = append(sols, &Sol{
 				name: info.Name(),
-				path: path,
+				path: relPath,
 				deps: make([]*Sol, 0),
 			})
 		}
@@ -125,18 +131,18 @@ func (s *Storage) ExtractPaths(dep *Dependency) (*Extractor, error) {
 	filepath.Walk(path.Join(gitRoot, "libs"), checker)
 
 	// check imports and sort
-	err := s.ResolveImports(sols)
+	err := s.ResolveImports(gitRoot, sols)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Extractor{
-		dep: dep,
+		dep:  dep,
 		sols: sols,
 	}, nil
 }
 
-func (s *Storage) ResolveImports(sols []*Sol) error {
+func (s *Storage) ResolveImports(root string, sols []*Sol) error {
 
 	reg, err := regexp.Compile(ImportRegex)
 	if err != nil {
@@ -144,7 +150,7 @@ func (s *Storage) ResolveImports(sols []*Sol) error {
 	}
 
 	for _, sol := range sols {
-		file, err := os.Open(sol.path)
+		file, err := os.Open(path.Join(root, sol.path))
 		if err != nil {
 			return err
 		}
@@ -163,11 +169,11 @@ func (s *Storage) ResolveImports(sols []*Sol) error {
 					match = matches[1]
 				}
 
-				solDir := path.Dir(sol.path)
+				solDir := path.Dir(path.Join(root, sol.path))
 
 				depPath := path.Join(solDir, match)
 				if el := sort.Search(len(sols), func(i int) bool {
-					return sols[i].path == depPath
+					return path.Join(root, sols[i].path) == depPath
 				}); el < len(sols) {
 					sol.deps = append(sol.deps, sols[el])
 				}
@@ -184,4 +190,57 @@ func (s *Storage) ResolveImports(sols []*Sol) error {
 
 func (s *Storage) ResolveDepPath(dep *Dependency) string {
 	return path.Join(s.root, dep.path)
+}
+
+func (s *Storage) Commit(e *Extractor, set *hashset.Set) {
+	working, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	p := path.Join(working, "lib", e.dep.path) // extract "lib" into a config object or read dapp file
+	err = os.Remove(p)
+	if err != nil {
+		panic(err) // maybe the file not existing will throw this tm
+	}
+	err = os.MkdirAll(p, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+
+	inclDeps := hashset.New()
+	for _, inter := range set.Values() {
+		sol := inter.(*Sol)
+		inclDeps.Add(sol)
+		for _, dep := range sol.deps {
+			inclDeps.Add(dep)
+		}
+	}
+
+	for _, toStore := range inclDeps.Values() {
+		sol := toStore.(*Sol)
+		s.WriteTo(p, e, sol)
+	}
+}
+
+func (s *Storage) WriteTo(libPath string, e *Extractor, sol *Sol) {
+	fromPath := path.Join(s.ResolveDepPath(e.dep), sol.path)
+	fromFile, err := os.Open(fromPath)
+	if err != nil {
+		panic(err)
+	}
+	defer fromFile.Close()
+	err = os.MkdirAll(path.Dir(path.Join(libPath, sol.path)), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	toFile, err := os.Create(path.Join(libPath, sol.path))
+	if err != nil {
+		panic(err)
+	}
+	defer toFile.Close()
+	_, err = io.Copy(toFile, fromFile)
+	if err != nil {
+		panic(err)
+	}
 }

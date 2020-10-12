@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/emirpasic/gods/sets/hashset"
 	"regexp"
 )
 
 const (
-	InputRegex = "(?P<repo>[^\\r\\n\\t\\f\\v@ ]+)@v?(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)(?:-(?P<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?"
+	InputRegex  = "(?P<repo>[^\\r\\n\\t\\f\\v@ ]+)@v?(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)(?:-(?P<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?"
 	ImportRegex = "import\\s+?(?:(?:(?:[\\w*\\s{},]*)\\s+from\\s+?)|)(?:(?:\"(?P<ImportPath>.*?)\")|(?:'(?P<ImportPath>.*?)'))[\\s]*?(?:;|$|)"
 )
 
@@ -20,12 +21,12 @@ type Dependency struct {
 }
 
 type Extractor struct {
-	dep *Dependency
+	dep  *Dependency
 	sols []*Sol
 }
 
 func NewDependency(dependency string) (*Dependency, error) {
-	match, err := regexp.MatchString(InputRegex,dependency)
+	match, err := regexp.MatchString(InputRegex, dependency)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +48,18 @@ func NewDependency(dependency string) (*Dependency, error) {
 
 }
 
-func (d *Extractor) Render() {
+func (e *Extractor) GetFileList(selected *hashset.Set) []string {
+	list := make([]string, len(e.sols))
+	for i, sol := range e.sols {
+		isSelected := " "
+		if selected.Contains(sol) {
+			isSelected = "X"
+		}
+		list[i] = fmt.Sprintf("[%s] %s (%s)", isSelected, sol.name, sol.path)
+	}
+	return list
+}
 
+func (e *Extractor) GetSol(n int) *Sol {
+	return e.sols[n]
 }
