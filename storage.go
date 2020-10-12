@@ -197,7 +197,7 @@ func (s *Storage) Commit(e *Extractor, set *hashset.Set) {
 		panic(err)
 	}
 
-	p := path.Join(working, "lib", e.dep.path) // extract "lib" into a config object or read dapp file
+	p := path.Join(working, "src", "lib", e.dep.path) // extract "lib" into a config object or read dapp file
 	err = os.MkdirAll(p, os.ModePerm)
 	if err != nil {
 		panic(err)
