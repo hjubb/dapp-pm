@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 )
@@ -154,7 +153,6 @@ func (s *Storage) ResolveImports(root string, sols []*Sol) error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			// test the regex for imports here
@@ -172,17 +170,18 @@ func (s *Storage) ResolveImports(root string, sols []*Sol) error {
 				solDir := path.Dir(path.Join(root, sol.path))
 
 				depPath := path.Join(solDir, match)
-				if el := sort.Search(len(sols), func(i int) bool {
-					return path.Join(root, sols[i].path) == depPath
-				}); el < len(sols) {
-					sol.deps = append(sol.deps, sols[el])
+				for ii, searchSol := range sols {
+					toCheck := path.Join(root, sols[ii].path)
+					if toCheck == depPath {
+						sol.deps = append(sol.deps, searchSol)
+					}
 				}
 			}
 		}
 		if err := scanner.Err(); err != nil {
 			return err
 		}
-
+		file.Close()
 	}
 
 	return nil
@@ -199,10 +198,6 @@ func (s *Storage) Commit(e *Extractor, set *hashset.Set) {
 	}
 
 	p := path.Join(working, "lib", e.dep.path) // extract "lib" into a config object or read dapp file
-	err = os.Remove(p)
-	if err != nil {
-		panic(err) // maybe the file not existing will throw this tm
-	}
 	err = os.MkdirAll(p, os.ModePerm)
 	if err != nil {
 		panic(err)
