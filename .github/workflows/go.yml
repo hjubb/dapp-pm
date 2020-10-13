@@ -7,26 +7,14 @@ on:
     branches: [ main ]
 
 jobs:
-
   build:
-    name: Build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@master
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15
-      id: go
-
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-
-    - name: Generate build files
-      uses: thatisuday/go-cross-build@v1
-      with:
-          platforms: 'linux/amd64, darwin/amd64, windows/amd64'
-          package: 'main'
-          name: 'dapp-pm'
-          compress: 'true'
-          dest: 'dist'
+      - name: Make binaries
+        uses: sosedoff/actions/golang-build@master
+        # Uncomment to following piece to restrict targets
+        # with:
+        #   args: linux/amd64 darwin/amd64
