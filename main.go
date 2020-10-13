@@ -33,7 +33,10 @@ func main() {
 		return
 	}
 	depString := os.Args[1]
-	//specificSol := os.Args[2] // TODO: let power users shortcut the selection process if they know the exact name or path of the sol
+	var specificSol string
+	if len(os.Args) == 3 {
+		specificSol = os.Args[2]
+	}
 
 	dep, err := storage.GetDependency(depString)
 	if err != nil {
@@ -44,6 +47,15 @@ func main() {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if len(specificSol) > 0 {
+		foundSol := extractor.GetSolByName(specificSol)
+		if foundSol != nil {
+			storage.Commit(extractor, hashset.New(foundSol))
+			println(fmt.Sprintf("importing %s and its dependencies", specificSol))
+		}
+		return
 	}
 
 	if err := ui.Init(); err != nil {

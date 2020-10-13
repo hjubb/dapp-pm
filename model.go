@@ -63,3 +63,18 @@ func (e *Extractor) GetFileList(selected *hashset.Set) []string {
 func (e *Extractor) GetSol(n int) *Sol {
 	return e.sols[n]
 }
+
+func (e *Extractor) GetSolByName(name string) *Sol {
+	solNum := 0
+	var foundSol *Sol
+	for _, sol := range e.sols {
+		if sol.name == name {
+			solNum++
+			foundSol = sol
+		}
+	}
+	if solNum > 1 {
+		panic(fmt.Errorf("more than one solidity file found with that name"))
+	}
+	return foundSol
+}
