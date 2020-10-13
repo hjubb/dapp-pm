@@ -2,9 +2,8 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+    - '*'
 
 jobs:
   build:
@@ -19,7 +18,7 @@ jobs:
           xgo_version: latest
           go_version: ${{ matrix.go_version }}
           dest: build
-          prefix: autocannon-go
+          prefix: dapp-pm
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
           v: true
           x: false
