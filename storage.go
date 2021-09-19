@@ -39,6 +39,28 @@ func NewStorageEngine() (*Storage, error) {
 	}, nil
 }
 
+func GetDependencies(s *Sol) (*hashset.Set, error) {
+	allDeps := hashset.New()
+	allDeps.Add(s)
+	if len(s.deps) == 0 {
+		return allDeps, nil
+	}
+
+	for _, dep := range s.deps {
+		result, err := GetDependencies(dep)
+
+		if err != nil {
+			panic(err)
+		}
+
+		for _, some_dep := range result.Values() {
+			allDeps.Add(some_dep)
+		}
+	}
+
+	return allDeps, nil
+}
+
 func (s *Storage) CheckExisting(dep *Dependency) (bool, error) {
 	s.fetchMut.RLock()
 	defer s.fetchMut.RUnlock()
@@ -207,7 +229,11 @@ func (s *Storage) Commit(e *Extractor, set *hashset.Set) {
 	for _, inter := range set.Values() {
 		sol := inter.(*Sol)
 		inclDeps.Add(sol)
-		for _, dep := range sol.deps {
+		deps, err := GetDependencies(sol)
+		if err != nil {
+			panic(err)
+		}
+		for _, dep := range deps.Values() {
 			inclDeps.Add(dep)
 		}
 	}
