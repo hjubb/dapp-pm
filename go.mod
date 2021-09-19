@@ -1,4 +1,4 @@
-module dapp-pm
+module github.com/hjubb/dapp-pm
 
 go 1.15
 
